@@ -1,4 +1,4 @@
-//! # Sample 7: ContextKey<T> — Typed Key API
+//! # Sample 7: `ContextKey<T>` — Typed Key API
 //!
 //! Demonstrates the `ContextKey<T>` typed wrapper.
 //!

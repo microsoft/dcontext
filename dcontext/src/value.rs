@@ -19,6 +19,7 @@ where
     }
 
     fn serialize_value(&self) -> Result<Vec<u8>, ContextError> {
-        bincode::serialize(self).map_err(|e| ContextError::SerializationFailed(e.to_string()))
+        bincode::serde::encode_to_vec(self, bincode::config::legacy())
+            .map_err(|e| ContextError::SerializationFailed(e.to_string()))
     }
 }

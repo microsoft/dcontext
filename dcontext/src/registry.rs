@@ -303,7 +303,8 @@ where
                 opts.version,
                 Box::new(
                     |bytes: &[u8]| -> Result<Box<dyn ContextValue>, ContextError> {
-                        bincode::deserialize::<T>(bytes)
+                        bincode::serde::decode_from_slice::<T, _>(bytes, bincode::config::legacy())
+                            .map(|(value, _)| value)
                             .map(|v| Box::new(v) as Box<dyn ContextValue>)
                             .map_err(|e| ContextError::DeserializationFailed(e.to_string()))
                     },
@@ -381,8 +382,10 @@ where
         old_version,
         Box::new(
             move |bytes: &[u8]| -> Result<Box<dyn ContextValue>, ContextError> {
-                let old_val = bincode::deserialize::<TOld>(bytes)
-                    .map_err(|e| ContextError::DeserializationFailed(e.to_string()))?;
+                let old_val =
+                    bincode::serde::decode_from_slice::<TOld, _>(bytes, bincode::config::legacy())
+                        .map(|(value, _)| value)
+                        .map_err(|e| ContextError::DeserializationFailed(e.to_string()))?;
                 let current_val = migrate(old_val);
                 Ok(Box::new(current_val) as Box<dyn ContextValue>)
             },
@@ -696,7 +699,7 @@ pub(crate) fn is_registered(key: &str) -> bool {
         return frozen.contains_key(key);
     }
     let guard = lock_build();
-    guard.as_ref().map_or(false, |map| map.contains_key(key))
+    guard.as_ref().is_some_and(|map| map.contains_key(key))
 }
 
 #[cfg(test)]

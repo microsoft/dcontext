@@ -44,8 +44,8 @@ fn in_scope<R>(f: impl FnOnce() -> R) -> R {
 }
 
 fn populate_context(n: usize) {
-    for i in 0..n.min(KEYS.len()) {
-        dcontext::set_context_variable(KEYS[i], BenchValue(format!("value-{i}")));
+    for (i, &key) in KEYS.iter().take(n).enumerate() {
+        dcontext::set_context_variable(key, BenchValue(format!("value-{i}")));
     }
 }
 
@@ -207,8 +207,8 @@ fn bench_read_throughput(c: &mut Criterion) {
             for s in stores {
                 tasks.push(tokio::spawn(
                     async move {
-                        for i in 0..10 {
-                            let _v: BenchValue = dcontext::get_context_variable(KEYS[i]).unwrap();
+                        for &key in KEYS.iter().take(10) {
+                            let _v: BenchValue = dcontext::get_context_variable(key).unwrap();
                         }
                     }
                     .with(s),
@@ -232,8 +232,8 @@ fn bench_read_throughput(c: &mut Criterion) {
                 let s = snap.clone();
                 tasks.push(tokio::spawn(
                     async move {
-                        for i in 0..10 {
-                            let _v: BenchValue = dcontext::get_context_variable(KEYS[i]).unwrap();
+                        for &key in KEYS.iter().take(10) {
+                            let _v: BenchValue = dcontext::get_context_variable(key).unwrap();
                         }
                     }
                     .attach(s),

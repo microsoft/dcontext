@@ -60,8 +60,8 @@ pub(crate) fn serialize_from(
         scope_chain: scope_chain_val,
     };
 
-    let bytes =
-        bincode::serialize(&wire).map_err(|e| ContextError::SerializationFailed(e.to_string()))?;
+    let bytes = bincode::serde::encode_to_vec(&wire, bincode::config::legacy())
+        .map_err(|e| ContextError::SerializationFailed(e.to_string()))?;
 
     crate::config::check_size(bytes.len())?;
 
@@ -122,7 +122,8 @@ fn deserialize_entry(
 }
 
 fn deserialize_wire(bytes: &[u8]) -> Result<(Vec<WireEntry>, Vec<String>), ContextError> {
-    let wire: WireContext = bincode::deserialize(bytes)
+    let wire: WireContext = bincode::serde::decode_from_slice(bytes, bincode::config::legacy())
+        .map(|(value, _)| value)
         .map_err(|e| ContextError::DeserializationFailed(e.to_string()))?;
 
     match wire.version {
@@ -155,10 +156,40 @@ pub fn make_wire_bytes_v(
         }],
         scope_chain: Vec::new(),
     };
-    bincode::serialize(&wire).unwrap_or_default()
+    bincode::serde::encode_to_vec(&wire, bincode::config::legacy()).unwrap_or_default()
 }
 
 #[cfg(test)]
 pub(crate) mod test_helpers {
     pub use super::{make_wire_bytes, make_wire_bytes_v};
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preserves_bincode_one_wire_bytes() {
+        let legacy_bytes = [
+            2, 0, 0, 0, // wire version
+            1, 0, 0, 0, 0, 0, 0, 0, // entry count
+            1, 0, 0, 0, 0, 0, 0, 0, b'k', // key
+            1, 0, 0, 0, // key version
+            2, 0, 0, 0, 0, 0, 0, 0, 42, 43, // value bytes
+            0, 0, 0, 0, 0, 0, 0, 0, // scope count
+        ];
+        assert_eq!(make_wire_bytes("k", 1, &[42, 43]), legacy_bytes);
+        let (entries, scopes) = deserialize_wire(&legacy_bytes).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].key, "k");
+        assert_eq!(entries[0].key_version, 1);
+        assert_eq!(entries[0].value, [42, 43]);
+        assert!(scopes.is_empty());
+    }
+
+    #[test]
+    fn preserves_bincode_one_context_values() {
+        let legacy_bytes = [42, 0, 0, 0, 0, 0, 0, 0];
+        assert_eq!(42_u64.serialize_value().unwrap(), legacy_bytes);
+    }
 }

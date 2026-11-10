@@ -22,6 +22,10 @@ and even process boundaries via serialization.
 
 ## Quick Start
 
+Requires Rust 1.89 or newer. Version 0.9.1 updates dependencies and migrates
+to bincode 2.0.1 with legacy encoding, preserving existing wire bytes.
+Bincode 3.0.0 is excluded because it intentionally fails compilation.
+
 ```toml
 [dependencies]
 dcontext = "0.9"

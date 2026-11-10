@@ -364,7 +364,6 @@ fn test_serialize_deserialize_string_roundtrip() {
 
     let encoded = serialize_context()
         .map(|b| base64::engine::general_purpose::STANDARD.encode(&b))
-        .map_err(|e| e)
         .unwrap();
     assert!(!encoded.is_empty());
 
@@ -678,7 +677,7 @@ fn test_migration_v1_to_v2() {
     let v1_val = TraceV1 {
         trace_id: "tid-old".into(),
     };
-    let v1_bytes = bincode::serialize(&v1_val).unwrap();
+    let v1_bytes = bincode::serde::encode_to_vec(&v1_val, bincode::config::legacy()).unwrap();
 
     let result = crate::registry::with_registration(key, |reg| {
         let deser = reg.deserializers.get(&1).expect("v1 deserializer missing");
@@ -708,7 +707,8 @@ fn test_migration_end_to_end() {
     let v1_value = TraceV1 {
         trace_id: "from-v1-sender".into(),
     };
-    let v1_value_bytes = bincode::serialize(&v1_value).unwrap();
+    let v1_value_bytes =
+        bincode::serde::encode_to_vec(&v1_value, bincode::config::legacy()).unwrap();
     let wire = make_wire_bytes(key, 1, &v1_value_bytes);
 
     // Deserialize on a fresh thread (clean thread-local context).
@@ -961,15 +961,16 @@ mod async_tests {
             snapshot()
         };
 
-        let handle = with_snapshot(snap, async {
+        let result = with_snapshot(snap, async {
             let child_snap = snapshot();
             tokio::spawn(with_snapshot(child_snap, async {
                 get_context::<RequestId>(key).unwrap()
             }))
+            .await
+            .unwrap()
         })
         .await;
 
-        let result = handle.await.unwrap();
         assert_eq!(result.0, "spawned-async");
     }
 
@@ -1096,7 +1097,9 @@ fn test_scope_chain_wire_v1_compat() {
     register::<RequestId>(key);
 
     // Create v1 wire bytes (no scope chain)
-    let value_bytes = bincode::serialize(&RequestId("v1-value".into())).unwrap();
+    let value_bytes =
+        bincode::serde::encode_to_vec(RequestId("v1-value".into()), bincode::config::legacy())
+            .unwrap();
     let v1_bytes = make_wire_bytes_v(1, key, 1, &value_bytes);
 
     {

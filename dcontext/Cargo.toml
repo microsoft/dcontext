@@ -1,7 +1,8 @@
 [package]
 name = "dcontext"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
+rust-version = "1.89"
 description = "Distributed context propagation for Rust — scoped, type-safe, serializable"
 license = "MIT"
 readme = "../README.md"
@@ -10,8 +11,8 @@ keywords = ["context", "distributed", "propagation", "tracing", "scope"]
 categories = ["concurrency", "network-programming"]
 
 [dependencies]
-bincode = "1"
-base64 = { version = "0.22", optional = true }
+bincode = { version = "2.0.1", default-features = false, features = ["std", "serde"] }
+base64 = { version = "0.23.1", optional = true }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 pin-project-lite = "0.2"
@@ -24,7 +25,7 @@ context-key = []
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
 serde_json = "1"
-criterion = { version = "0.5", features = ["async_tokio"] }
+criterion = { version = "0.8.2", features = ["async_tokio"] }
 
 [[bench]]
 name = "context_propagation"

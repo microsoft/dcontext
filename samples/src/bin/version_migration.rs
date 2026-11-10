@@ -63,7 +63,7 @@ fn main() {
         let v1 = TraceContextV1 {
             trace_id: "tid-from-old-node".into(),
         };
-        let v1_bytes = bincode::serialize(&v1).unwrap();
+        let v1_bytes = bincode::serde::encode_to_vec(&v1, bincode::config::legacy()).unwrap();
         make_wire_bytes("trace_ctx", 1, &v1_bytes)
     };
 
